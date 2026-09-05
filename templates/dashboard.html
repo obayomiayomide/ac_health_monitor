@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0"
+    />
+    <meta name="theme-color" content="#1D9E75" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="AC Monitor" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/static/icons/icon-192.png" />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+    <title>AC Health Monitor</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  </head>
+  <body>
+    <div id="offlineBanner">No internet connection — showing cached data</div>
+
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="app-icon">❄️</div>
+        <div>
+          <div class="app-name">AC Health Monitor</div>
+          <div class="app-sub" id="unitLabel">Unit 1 — Living Room</div>
+        </div>
+      </div>
+      <div class="live-badge">
+        <div class="live-dot" id="liveDot"></div>
+        <span id="liveStatus">Live</span>
+      </div>
+    </div>
+
+    <div class="content">
+      <!-- STATUS BANNER -->
+      <div class="status-banner green" id="statusBanner">
+        <div class="status-icon" id="statusIcon">❄️</div>
+        <div>
+          <div class="status-title" id="statusTitle">System Healthy</div>
+          <div class="status-rec" id="statusRec">
+            No action required. All parameters normal.
+          </div>
+        </div>
+      </div>
+
+      <!-- METRIC CARDS -->
+      <div class="metrics">
+        <div class="metric">
+          <div class="metric-label">🌡️ Supply air</div>
+          <div class="metric-value">
+            <span id="mSupply">--</span><span class="metric-unit">°C</span>
+          </div>
+          <div class="metric-status s-ok" id="mSupplyStatus">--</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">🏠 Room temp</div>
+          <div class="metric-value">
+            <span id="mRoom">--</span><span class="metric-unit">°C</span>
+          </div>
+          <div class="metric-status s-ok" id="mRoomStatus">Comfortable</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">📳 Vibration</div>
+          <div class="metric-value"><span id="mVib">--</span></div>
+          <div class="metric-status s-ok" id="mVibStatus">--</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">⚡ Current</div>
+          <div class="metric-value">
+            <span id="mCurr">--</span><span class="metric-unit">A</span>
+          </div>
+          <div class="metric-status s-ok" id="mCurrStatus">--</div>
+        </div>
+      </div>
+
+      <!-- MODEL PREDICTIONS -->
+      <div class="card">
+        <div class="card-title">AI predictions</div>
+        <div class="model-row">
+          <div class="model-header">
+            <span class="model-name">🌲 Random Forest</span>
+            <span class="model-conf" id="rfConf">--</span>
+          </div>
+          <div class="model-fault" id="rfFault" style="margin-bottom: 6px">
+            Waiting...
+          </div>
+          <div class="conf-track">
+            <div class="conf-fill" id="rfBar" style="width: 0%"></div>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div class="model-row">
+          <div class="model-header">
+            <span class="model-name">🧠 LSTM</span>
+            <span class="model-conf" id="lstmConf">--</span>
+          </div>
+          <div class="model-fault" id="lstmFault" style="margin-bottom: 6px">
+            Waiting for 60 readings...
+          </div>
+          <div class="conf-track">
+            <div class="conf-fill" id="lstmBar" style="width: 0%"></div>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div class="agree-note" id="agreeNote">Collecting data...</div>
+      </div>
+
+      <!-- PRESSURE GAUGES -->
+      <div class="pressure-grid">
+        <div class="gauge">
+          <div class="gauge-label">Low side</div>
+          <div class="gauge-value">
+            <span id="gLo">--</span> <span class="gauge-unit">PSI</span>
+          </div>
+          <div class="gauge-range">Normal: 60–90 PSI</div>
+          <div class="gauge-bar-track">
+            <div
+              class="gauge-bar-fill"
+              id="gLoBar"
+              style="width: 0%; background: var(--green)"
+            ></div>
+          </div>
+        </div>
+        <div class="gauge">
+          <div class="gauge-label">High side</div>
+          <div class="gauge-value">
+            <span id="gHi">--</span> <span class="gauge-unit">PSI</span>
+          </div>
+          <div class="gauge-range">Normal: 250–350 PSI</div>
+          <div class="gauge-bar-track">
+            <div
+              class="gauge-bar-fill"
+              id="gHiBar"
+              style="width: 0%; background: var(--green)"
+            ></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LIVE CHART -->
+      <div class="card">
+        <div class="card-title">Sensor history</div>
+        <div class="chart-tabs">
+          <button class="tab active" onclick="setTab('temp', this)">
+            Temperature
+          </button>
+          <button class="tab" onclick="setTab('vib', this)">Vibration</button>
+          <button class="tab" onclick="setTab('curr', this)">Current</button>
+          <button class="tab" onclick="setTab('pres', this)">Pressure</button>
+        </div>
+        <div style="position: relative; height: 180px">
+          <canvas
+            id="liveChart"
+            role="img"
+            aria-label="Live sensor history chart"
+          ></canvas>
+        </div>
+      </div>
+
+      <!-- DEMO CONTROLS (visible when no ESP32 connected) -->
+      <div class="card" id="demoCard">
+        <div class="card-title">Simulate fault (demo mode)</div>
+        <div class="demo-grid">
+          <button class="demo-btn" onclick="simulate('HEALTHY')">
+            ✅ Healthy
+          </button>
+          <button class="demo-btn" onclick="simulate('LOW_REFRIGERANT')">
+            🌡️ Low Refrigerant
+          </button>
+          <button class="demo-btn" onclick="simulate('BLOCKED_CONDENSER')">
+            🔥 Blocked Condenser
+          </button>
+          <button class="demo-btn" onclick="simulate('BEARING_WEAR')">
+            ⚠️ Bearing Wear
+          </button>
+        </div>
+      </div>
+
+      <!-- EVENT LOG -->
+      <div class="card">
+        <div class="card-title">Event log</div>
+        <div id="eventLog">
+          <div class="event">
+            <span class="badge badge-info">INFO</span>
+            <div>
+              <div class="event-text">
+                Dashboard loaded. Waiting for sensor data.
+              </div>
+              <div class="event-time">Just now</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTTOM NAV (mobile) -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" onclick="scrollTop()">
+        <span class="nav-icon">🏠</span>Dashboard
+      </button>
+      <button
+        class="nav-item"
+        onclick="
+          document
+            .getElementById('demoCard')
+            .scrollIntoView({ behavior: 'smooth' })
+        "
+      >
+        <span class="nav-icon">🎛️</span>Simulate
+      </button>
+      <button
+        class="nav-item"
+        onclick="
+          document
+            .querySelector('.card:last-child')
+            .scrollIntoView({ behavior: 'smooth' })
+        "
+      >
+        <span class="nav-icon">📋</span>Log
+      </button>
+    </nav>
+
+    <!-- PWA INSTALL BANNER -->
+    <div id="installBanner">
+      <div>
+        <div class="install-text">Install AC Monitor</div>
+        <div class="install-sub">Add to home screen for quick access</div>
+      </div>
+      <button class="install-btn" id="installBtn">Install</button>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+  </body>
+</html>
