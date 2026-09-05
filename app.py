@@ -6,6 +6,7 @@ import json
 from datetime import datetime
 from collections import deque
 import ai_edge_litert.interpreter as litert
+import csv
 # import tensorflow as tf
 
 app = Flask(__name__)
@@ -29,8 +30,23 @@ try:
     # lstm_model = tf.keras.models.load_model('lstm_model.h5')
     # LSTM_READY = True
     # print("✓ LSTM loaded")
-    interpreter = litert.Interpreter(model_path='lstm_model.tflite')
-    interpreter.allocate_tensors()
+
+    try:
+        # First attempt: Try to load with the Flex delegate for the LSTM operations
+        flex_delegate = litert.load_delegate('libtensorflowlite_flex.so')
+        interpreter = litert.Interpreter(
+            model_path='lstm_model.tflite',
+            experimental_delegates=[flex_delegate]
+        )
+        interpreter.allocate_tensors()
+        print("✓ LSTM TFLite loaded with Flex delegate")
+    except Exception as delegate_error:
+        # Fallback: If delegate loading fails (e.g. locally), try standard loading
+        print(f"ℹ Flex delegate unavailable, attempting standard load: {delegate_error}")
+        interpreter = litert.Interpreter(model_path='lstm_model.tflite')
+        interpreter.allocate_tensors()
+        print("✓ LSTM TFLite loaded (Standard fallback)")
+        
     LSTM_READY = True
     print("✓ LSTM TFLite loaded")
 except Exception as e:
@@ -197,9 +213,11 @@ def predict():
             x_seq = np.array(list(sensor_buffer))
             x_seq_scaled = scaler.transform(x_seq)
             x_seq_scaled = x_seq_scaled.reshape(1, 60, len(FEATURE_COLS))
+
             # proba = lstm_model.predict(x_seq_scaled, verbose=0)[0]
             # lstm_pred = le.inverse_transform([np.argmax(proba)])[0]
             # lstm_conf = round(float(max(proba)) * 100, 1)
+
             lstm_pred, lstm_conf = predict_lstm_tflite(x_seq_scaled)
 
         # Use RF if LSTM buffer not filled yet
