@@ -5,6 +5,8 @@ import os
 import json
 from datetime import datetime
 from collections import deque
+import ai_edge_litert.interpreter as litert
+# import tensorflow as tf
 
 app = Flask(__name__)
 
@@ -24,11 +26,10 @@ except Exception as e:
     print(f"⚠ RF not loaded: {e}")
 
 try:
-    import tensorflow as tf
     # lstm_model = tf.keras.models.load_model('lstm_model.h5')
     # LSTM_READY = True
     # print("✓ LSTM loaded")
-    interpreter = tf.lite.Interpreter(model_path='lstm_model.tflite')
+    interpreter = litert.Interpreter(model_path='lstm_model.tflite')
     interpreter.allocate_tensors()
     LSTM_READY = True
     print("✓ LSTM TFLite loaded")

@@ -12,11 +12,14 @@
     <meta name="apple-mobile-web-app-title" content="AC Monitor" />
     <link rel="manifest" href="/manifest.json" />
     <link rel="apple-touch-icon" href="/static/icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="/static/icons/icon-192.png" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.9.1/fonts/remixicon.min.css">
     <link
       rel="stylesheet"
       href="{{ url_for('static', filename='css/style.css') }}"
     />
     <title>AC Health Monitor</title>
+    <link rel="icon" type="image/x-icon" href="/static/icons/icon-192.png" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
   </head>
   <body>
@@ -24,10 +27,10 @@
 
     <div class="topbar">
       <div class="topbar-left">
-        <div class="app-icon">❄️</div>
+        <div class="app-icon"><img class="app-icon-img" src="/static/icons/icon-192.png" alt="AC Health Monitor"  width="50"> </div>
         <div>
           <div class="app-name">AC Health Monitor</div>
-          <div class="app-sub" id="unitLabel">Unit 1 — Living Room</div>
+          <!-- <div class="app-sub" id="unitLabel">Unit 1 — Living Room</div> -->
         </div>
       </div>
       <div class="live-badge">
@@ -51,26 +54,26 @@
       <!-- METRIC CARDS -->
       <div class="metrics">
         <div class="metric">
-          <div class="metric-label">🌡️ Supply air</div>
+          <div class="metric-label"><span><i class="ri-temp-cold-line ri-lg"></i></span> Supply air</div>
           <div class="metric-value">
             <span id="mSupply">--</span><span class="metric-unit">°C</span>
           </div>
           <div class="metric-status s-ok" id="mSupplyStatus">--</div>
         </div>
         <div class="metric">
-          <div class="metric-label">🏠 Room temp</div>
+          <div class="metric-label"><span><i class="ri-home-5-line ri-lg"></i></span> Room temp</div>
           <div class="metric-value">
             <span id="mRoom">--</span><span class="metric-unit">°C</span>
           </div>
           <div class="metric-status s-ok" id="mRoomStatus">Comfortable</div>
         </div>
         <div class="metric">
-          <div class="metric-label">📳 Vibration</div>
+          <div class="metric-label"><span><i class="ri-volume-vibrate-line ri-lg"></i></span> Vibration</div>
           <div class="metric-value"><span id="mVib">--</span></div>
           <div class="metric-status s-ok" id="mVibStatus">--</div>
         </div>
         <div class="metric">
-          <div class="metric-label">⚡ Current</div>
+          <div class="metric-label"><span><i class="ri-flashlight-line ri-lg"></i></span> Current</div>
           <div class="metric-value">
             <span id="mCurr">--</span><span class="metric-unit">A</span>
           </div>
@@ -83,7 +86,7 @@
         <div class="card-title">AI predictions</div>
         <div class="model-row">
           <div class="model-header">
-            <span class="model-name">🌲 Random Forest</span>
+            <span class="model-name"><span><i class="ri-tree-line ri-2x" style="color: green;"></i></span> Random Forest</span>
             <span class="model-conf" id="rfConf">--</span>
           </div>
           <div class="model-fault" id="rfFault" style="margin-bottom: 6px">
@@ -96,7 +99,7 @@
         <div class="divider"></div>
         <div class="model-row">
           <div class="model-header">
-            <span class="model-name">🧠 LSTM</span>
+            <span class="model-name"><span><i class="ri-brain-2-line ri-2x" style="color: rgb(186, 2, 137);"></i></span> LSTM</span>
             <span class="model-conf" id="lstmConf">--</span>
           </div>
           <div class="model-fault" id="lstmFault" style="margin-bottom: 6px">
@@ -167,16 +170,16 @@
         <div class="card-title">Simulate fault (demo mode)</div>
         <div class="demo-grid">
           <button class="demo-btn" onclick="simulate('HEALTHY')">
-            ✅ Healthy
+            <span><i class="ri-check-line" style="color: green;"></i></span> Healthy
           </button>
           <button class="demo-btn" onclick="simulate('LOW_REFRIGERANT')">
-            🌡️ Low Refrigerant
+            <span><i class="ri-temp-cold-line" style="color: yellow;"></i></span> Low Refrigerant
           </button>
           <button class="demo-btn" onclick="simulate('BLOCKED_CONDENSER')">
-            🔥 Blocked Condenser
+            <span><i class="ri-fire-line" style="color: orange;"></i></span> Blocked Condenser
           </button>
           <button class="demo-btn" onclick="simulate('BEARING_WEAR')">
-            ⚠️ Bearing Wear
+            <span><i class="ri-error-warning-line" style="color: red;"></i></span> Bearing Wear
           </button>
         </div>
       </div>
@@ -201,7 +204,7 @@
     <!-- BOTTOM NAV (mobile) -->
     <nav class="bottom-nav">
       <button class="nav-item active" onclick="scrollTop()">
-        <span class="nav-icon">🏠</span>Dashboard
+        <span class="nav-icon"><i class="ri-home-5-line"></i>
       </button>
       <button
         class="nav-item"
@@ -211,7 +214,7 @@
             .scrollIntoView({ behavior: 'smooth' })
         "
       >
-        <span class="nav-icon">🎛️</span>Simulate
+        <span class="nav-icon"><i class="ri-play-circle-line"></i>
       </button>
       <button
         class="nav-item"
@@ -221,7 +224,7 @@
             .scrollIntoView({ behavior: 'smooth' })
         "
       >
-        <span class="nav-icon">📋</span>Log
+        <span class="nav-icon"><i class="ri-timeline-view"></i>
       </button>
     </nav>
 
