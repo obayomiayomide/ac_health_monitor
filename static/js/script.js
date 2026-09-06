@@ -283,7 +283,7 @@ function simulate(fault) {
     compressor_on: base.compressor_on,
   };
 
-  fetch("/predict", {
+  fetch("/predict?is_demo=true", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -298,13 +298,33 @@ function simulate(fault) {
 // ============================================================
 // AUTO REFRESH from /history (when ESP32 is connected)
 // ============================================================
+let demoInterval = null;
+
+// Start demo loop
+demoInterval = setInterval(() => {
+  if (document.getElementById("demoCard").style.display !== "none") {
+    simulate("HEALTHY");
+  }
+}, 3000);
+
 function pollLatest() {
   fetch("/status")
     .then((r) => r.json())
     .then((s) => {
-      document.getElementById("liveDot").style.background = s.rf_ready
-        ? "var(--green)"
-        : "var(--gray)";
+      const liveDot = document.getElementById("liveDot");
+
+      if (s.esp32_connected) {
+        liveDot.style.background = "var(--green)";
+
+        // Hide simulation UI when hardware is live
+        document.getElementById("demoCard").style.display = "none";
+        if (demoInterval) {
+          clearInterval(demoInterval);
+          demoInterval = null;
+        }
+      } else {
+        liveDot.style.background = s.rf_ready ? "var(--orange)" : "var(--gray)";
+      }
     })
     .catch(() => {});
 }

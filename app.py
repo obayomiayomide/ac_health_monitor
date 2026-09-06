@@ -15,6 +15,8 @@ app = Flask(__name__)
 # ============================================================
 # LOAD MODELS
 # ============================================================
+last_esp32_seen = None
+
 print("Loading models...")
 
 try:
@@ -173,6 +175,13 @@ def service_worker():
 
 @app.route('/predict', methods=['POST'])
 def predict():
+    global last_esp32_seen
+    
+    # Check if request comes from ESP32 (no source=demo query param)
+    is_demo = request.args.get('is_demo') == 'true'
+    if not is_demo:
+        last_esp32_seen = datetime.now()
+
     try:
         data = request.get_json()
         if not data:
@@ -189,7 +198,7 @@ def predict():
         low_psi      = float(data.get('low_pressure', 0))
         high_psi     = float(data.get('high_pressure', 0))
         comp_on      = int(data.get('compressor_on', 1))
-
+        
         features = [
             supply_temp, room_temp, temp_diff,
             vib_mag, vib_std, gyro,
@@ -198,16 +207,17 @@ def predict():
 
         # Add to buffers
         sensor_buffer.append(features)
-        history_buffer.append({
-            'time': datetime.now().strftime('%H:%M:%S'),
-            'supply_temp': supply_temp,
-            'room_temp': room_temp,
-            'temp_diff': temp_diff,
-            'vib_mag': vib_mag,
-            'current': current,
-            'low_psi': low_psi,
-            'high_psi': high_psi,
-        })
+        if not is_demo: 
+            history_buffer.append({
+                'time': datetime.now().strftime('%H:%M:%S'),
+                'supply_temp': supply_temp,
+                'room_temp': room_temp,
+                'temp_diff': temp_diff,
+                'vib_mag': vib_mag,
+                'current': current,
+                'low_psi': low_psi,
+                'high_psi': high_psi,
+            })
 
         # --- Random Forest Prediction ---
         rf_pred = 'UNAVAILABLE'
@@ -275,9 +285,15 @@ def history():
 
 @app.route('/status', methods=['GET'])
 def status():
+    # Check if an ESP32 posted in the last 10 seconds
+    has_esp32 = False
+    if last_esp32_seen:
+        has_esp32 = (datetime.now() - last_esp32_seen).total_seconds() < 10
+    
     return jsonify({
         'rf_ready':   RF_READY,
         'lstm_ready': LSTM_READY,
+        'esp32_connected': has_esp32, # <--- Return actual hardware state
         'buffer':     len(sensor_buffer),
         'history':    len(history_buffer),
     })
