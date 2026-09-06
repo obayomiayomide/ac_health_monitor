@@ -198,7 +198,19 @@ def predict():
         low_psi      = float(data.get('low_pressure', 0))
         high_psi     = float(data.get('high_pressure', 0))
         comp_on      = int(data.get('compressor_on', 1))
-        
+
+        # ✅ ADD LOGGING BLOCK HERE — right after feature extraction
+        # if not is_demo:
+        #     with open('real_healthy_data.csv', 'a', newline='') as f:
+        #         writer = csv.writer(f)
+        #         writer.writerow([
+        #             datetime.now().strftime('%H:%M:%S'),
+        #             supply_temp, room_temp, temp_diff,
+        #             vib_mag, vib_std, gyro,
+        #             current, low_psi, high_psi,
+        #             comp_on, 'HEALTHY'
+        #         ])
+
         features = [
             supply_temp, room_temp, temp_diff,
             vib_mag, vib_std, gyro,
@@ -242,7 +254,7 @@ def predict():
 
             # lstm_pred, lstm_conf = predict_lstm_tflite(x_seq_scaled)
             # Call your newly optimized ONNX prediction function
-        lstm_pred, lstm_conf = predict_lstm_onnx(x_seq_scaled)
+            lstm_pred, lstm_conf = predict_lstm_onnx(x_seq_scaled)
 
         # Use RF if LSTM buffer not filled yet
         primary_pred = lstm_pred if LSTM_READY and len(sensor_buffer) == 60 else rf_pred
