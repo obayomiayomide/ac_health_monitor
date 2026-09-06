@@ -5,8 +5,9 @@ import os
 import json
 from datetime import datetime
 from collections import deque
-import ai_edge_litert.interpreter as litert
+import onnxruntime as ort
 import csv
+# import ai_edge_litert.interpreter as litert
 # import tensorflow as tf
 
 app = Flask(__name__)
@@ -30,25 +31,20 @@ try:
     # lstm_model = tf.keras.models.load_model('lstm_model.h5')
     # LSTM_READY = True
     # print("✓ LSTM loaded")
+    
+    # interpreter = litert.Interpreter(model_path='lstm_model.tflite')
+    # interpreter.allocate_tensors()
+    # print("✓ LSTM TFLite loaded (Standard fallback)")
 
-    try:
-        # First attempt: Try to load with the Flex delegate for the LSTM operations
-        flex_delegate = litert.load_delegate('libtensorflowlite_flex.so')
-        interpreter = litert.Interpreter(
-            model_path='lstm_model.tflite',
-            experimental_delegates=[flex_delegate]
-        )
-        interpreter.allocate_tensors()
-        print("✓ LSTM TFLite loaded with Flex delegate")
-    except Exception as delegate_error:
-        # Fallback: If delegate loading fails (e.g. locally), try standard loading
-        print(f"ℹ Flex delegate unavailable, attempting standard load: {delegate_error}")
-        interpreter = litert.Interpreter(model_path='lstm_model.tflite')
-        interpreter.allocate_tensors()
-        print("✓ LSTM TFLite loaded (Standard fallback)")
+    # Load the ONNX model session
+    ort_session = ort.InferenceSession('lstm_model.onnx')
+    
+    # Get input and output names required by ONNX to route data
+    lstm_input_name = ort_session.get_inputs()[0].name
+    lstm_output_name = ort_session.get_outputs()[0].name
         
     LSTM_READY = True
-    print("✓ LSTM TFLite loaded")
+    print("✓ LSTM ONNX loaded")
 except Exception as e:
     LSTM_READY = False
     print(f"⚠ LSTM not loaded: {e}")
@@ -61,15 +57,31 @@ except Exception as e:
 sensor_buffer   = deque(maxlen=60)   # LSTM needs 60 timesteps
 history_buffer  = deque(maxlen=100)  # dashboard chart history
 
-def predict_lstm_tflite(features_seq):
-    input_details  = interpreter.get_input_details()
-    output_details = interpreter.get_output_details()
+# def predict_lstm_tflite(features_seq):
+#     input_details  = interpreter.get_input_details()
+#     output_details = interpreter.get_output_details()
+#     input_data = np.array(features_seq, dtype=np.float32).reshape(1, 60, 10)
+#     interpreter.set_tensor(input_details[0]['index'], input_data)
+#     interpreter.invoke()
+#     proba = interpreter.get_tensor(output_details[0]['index'])[0]
+#     pred  = le.inverse_transform([np.argmax(proba)])[0]
+#     conf  = round(float(max(proba)) * 100, 1)
+#     return pred, conf
+
+def predict_lstm_onnx(features_seq):
+    # Prepare your input data exactly as you did before (shape: 1, 60, 10)
     input_data = np.array(features_seq, dtype=np.float32).reshape(1, 60, 10)
-    interpreter.set_tensor(input_details[0]['index'], input_data)
-    interpreter.invoke()
-    proba = interpreter.get_tensor(output_details[0]['index'])[0]
-    pred  = le.inverse_transform([np.argmax(proba)])[0]
-    conf  = round(float(max(proba)) * 100, 1)
+    
+    # Run inference via ONNX Runtime
+    outputs = ort_session.run([lstm_output_name], {lstm_input_name: input_data})
+    
+    # Extract probabilities (ONNX returns a list of outputs, grab the first one)
+    proba = outputs[0][0] 
+    
+    # Keep the rest of your original post-processing logic exactly the same
+    pred = le.inverse_transform([np.argmax(proba)])[0]
+    conf = round(float(max(proba)) * 100, 1)
+    
     return pred, conf
 
 FEATURE_COLS = [
@@ -218,7 +230,9 @@ def predict():
             # lstm_pred = le.inverse_transform([np.argmax(proba)])[0]
             # lstm_conf = round(float(max(proba)) * 100, 1)
 
-            lstm_pred, lstm_conf = predict_lstm_tflite(x_seq_scaled)
+            # lstm_pred, lstm_conf = predict_lstm_tflite(x_seq_scaled)
+            # Call your newly optimized ONNX prediction function
+        lstm_pred, lstm_conf = predict_lstm_onnx(x_seq_scaled)
 
         # Use RF if LSTM buffer not filled yet
         primary_pred = lstm_pred if LSTM_READY and len(sensor_buffer) == 60 else rf_pred
