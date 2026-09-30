@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#1D9E75" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/remixicon@4.9.1/fonts/remixicon.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/landing_style.css') }}"
+    />
+    <title>Welcome - AC Health Monitor</title>
+    <link rel="icon" type="image/x-icon" href="/static/icons/icon-192.png" />
+  </head>
+  <body>
+    <div class="landing-container">
+      <header class="landing-header">
+        <img
+          src="/static/icons/icon-192.png"
+          alt="AC Monitor Logo"
+          width="80"
+        />
+        <h1>AC Health Monitor</h1>
+        <p>AI-Based Predictive Maintenance System for HVAC Systems</p>
+      </header>
+
+      <main class="landing-main">
+        <!-- DEVICE ID ENTRY -->
+        <section class="card">
+          <h2>
+            <i class="ri-dashboard-3-line"></i> Monitor Real-Time Hardware
+          </h2>
+          <p>
+            Enter the unique Device ID or MAC Address of your ESP32 monitor to
+            open its isolated predictive dashboard.
+          </p>
+
+          <div class="input-group">
+            <input
+              type="text"
+              id="deviceIdInput"
+              placeholder="e.g., 246F28A1B2C3"
+              autocomplete="off"
+            />
+            <button onclick="navigateToDashboard()" class="btn-primary">
+              Launch Dashboard <i class="ri-arrow-right-line"></i>
+            </button>
+          </div>
+          <p id="errorMsg" class="error-text" style="display: none">
+            Please enter a valid Device ID.
+          </p>
+        </section>
+
+        <!-- SIMULATOR ENTRY -->
+        <section class="card secondary-card">
+          <h2><i class="ri-flask-line"></i> AI Simulation Playground</h2>
+          <p>
+            Don't have hardware connected right now? Test our Random Forest and
+            LSTM predictive models using manually configured ambient variables.
+          </p>
+          <a href="/simulator" class="btn-secondary">
+            Open Simulator Playground <i class="ri-play-line"></i>
+          </a>
+        </section>
+      </main>
+    </div>
+
+    <!-- PWA INSTALL BANNER -->
+    <div id="installBanner">
+      <div>
+        <div class="install-text">Install AC Monitor</div>
+        <div class="install-sub">Add to home screen for quick access</div>
+      </div>
+      <button class="install-btn" id="installBtn">Install</button>
+    </div>
+
+    <script>
+      // ============================================================
+      // SERVICE WORKER REGISTRATION
+      // ============================================================
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker
+          .register("/sw.js")
+          .then(() => console.log("SW registered"))
+          .catch((e) => console.log("SW error:", e));
+      }
+
+      function scrollTop() {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+
+      // ============================================================
+      // PWA — INSTALL PROMPT
+      // ============================================================
+      let deferredPrompt = null;
+
+      window.addEventListener("beforeinstallprompt", (e) => {
+        console.log(" beforeinstallprompt fired successfully!");
+        e.preventDefault();
+        deferredPrompt = e;
+
+        const banner = document.getElementById("installBanner");
+        if (banner) {
+          banner.style.display = "flex"; // Use "block" or "flex" depending on your layout style
+        }
+      });
+      // Use DOMContentLoaded or check if element exists to protect against timing crashes
+      document.addEventListener("DOMContentLoaded", () => {
+        const installBtn = document.getElementById("installBtn");
+
+        if (installBtn) {
+          installBtn.addEventListener("click", () => {
+            if (deferredPrompt) {
+              deferredPrompt.prompt();
+              deferredPrompt.userChoice.then((choiceResult) => {
+                console.log("User choice outcome:", choiceResult.outcome);
+
+                const banner = document.getElementById("installBanner");
+                if (banner) banner.style.display = "none";
+                deferredPrompt = null;
+              });
+            }
+          });
+        }
+      });
+      function navigateToDashboard() {
+        const idInput = document.getElementById("deviceIdInput").value.trim();
+        const errorMsg = document.getElementById("errorMsg");
+
+        if (idInput === "") {
+          errorMsg.innerText = "Please enter a Device ID.";
+          errorMsg.style.display = "block";
+          return;
+        }
+
+        fetch(`/api/validate-device/${encodeURIComponent(idInput)}`)
+          .then((res) => {
+            if (res.ok) {
+              // If HTTP status is 200-299, the device is active!
+              errorMsg.style.display = "none";
+              window.location.href = `/dashboard/${encodeURIComponent(idInput)}`;
+            } else if (res.status === 404) {
+              // If HTTP status is 404, block the user
+              errorMsg.innerText =
+                "Device not found or inactive. Check the ID or ensure your ESP32 is powered on.";
+              errorMsg.style.display = "block";
+            } else {
+              throw new Error("Server error");
+            }
+          })
+          .catch((err) => {
+            console.error("Validation error:", err);
+            errorMsg.innerText =
+              "Error connecting to server. Please try again.";
+            errorMsg.style.display = "block";
+          });
+      }
+
+      // Allow pressing 'Enter' inside the input field to trigger navigation
+      document
+        .getElementById("deviceIdInput")
+        .addEventListener("keypress", function (e) {
+          if (e.key === "Enter") navigateToDashboard();
+        });
+    </script>
+  </body>
+</html>

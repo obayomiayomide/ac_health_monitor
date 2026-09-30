@@ -1,6 +1,9 @@
 // ============================================================
 // CHART SETUP
 // ============================================================
+const pathSegments = window.location.pathname.split("/");
+const DEVICE_ID = pathSegments[pathSegments.length - 1] || "demo_device";
+
 let chartType = "temp";
 let liveChart = null;
 const MAX_POINTS = 30;
@@ -178,17 +181,11 @@ function updateUI(data) {
 
   // Pressures
   document.getElementById("gLo").textContent = f.low_psi.toFixed(0);
-  document.getElementById("gHi").textContent = f.high_psi.toFixed(0);
   const loFrac = Math.min(f.low_psi / 120, 1) * 100;
-  const hiFrac = Math.min(f.high_psi / 500, 1) * 100;
   const loColor =
     f.low_psi >= 60 && f.low_psi <= 90 ? "var(--green)" : "var(--red)";
-  const hiColor =
-    f.high_psi >= 250 && f.high_psi <= 350 ? "var(--green)" : "var(--red)";
   document.getElementById("gLoBar").style.width = loFrac + "%";
   document.getElementById("gLoBar").style.background = loColor;
-  document.getElementById("gHiBar").style.width = hiFrac + "%";
-  document.getElementById("gHiBar").style.background = hiColor;
 
   // Chart
   pushChartData(f);
@@ -230,7 +227,6 @@ const DEMO_DATA = {
     gyroscope: 5,
     current: 7.8,
     low_pressure: 75,
-    high_pressure: 290,
     compressor_on: 1,
   },
   LOW_REFRIGERANT: {
@@ -241,7 +237,6 @@ const DEMO_DATA = {
     gyroscope: 12,
     current: 9.5,
     low_pressure: 32,
-    high_pressure: 175,
     compressor_on: 1,
   },
   BLOCKED_CONDENSER: {
@@ -252,7 +247,6 @@ const DEMO_DATA = {
     gyroscope: 18,
     current: 13.5,
     low_pressure: 85,
-    high_pressure: 420,
     compressor_on: 1,
   },
   BEARING_WEAR: {
@@ -263,7 +257,6 @@ const DEMO_DATA = {
     gyroscope: 65,
     current: 10.5,
     low_pressure: 72,
-    high_pressure: 295,
     compressor_on: 1,
   },
 };
@@ -279,7 +272,6 @@ function simulate(fault) {
     gyroscope: parseFloat(noise(base.gyroscope, 0.1).toFixed(1)),
     current: parseFloat(noise(base.current, 0.06).toFixed(2)),
     low_pressure: parseFloat(noise(base.low_pressure, 0.04).toFixed(1)),
-    high_pressure: parseFloat(noise(base.high_pressure, 0.04).toFixed(1)),
     compressor_on: base.compressor_on,
   };
 
@@ -308,7 +300,7 @@ demoInterval = setInterval(() => {
 }, 3000);
 
 function pollLatest() {
-  fetch("/status")
+  fetch(`/api/${DEVICE_ID}/status`)
     .then((r) => r.json())
     .then((s) => {
       const liveDot = document.getElementById("liveDot");
@@ -327,6 +319,15 @@ function pollLatest() {
       }
     })
     .catch(() => {});
+
+  fetch(`/api/${DEVICE_ID}/get-latest`)
+    .then((r) => r.json())
+    .then((data) => {
+      if (data.status !== "no_data") {
+        updateUI(data);
+      }
+    })
+    .catch((err) => console.error("Error fetching latest prediction:", err));
 }
 
 // ============================================================

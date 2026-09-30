@@ -317,9 +317,9 @@ body {
 
 /* PRESSURE GAUGES */
 .pressure-grid {
-  display: grid;
+  /* display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: 8px; */
   margin-bottom: 12px;
 }
 .gauge {

@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#1D9E75" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/remixicon@4.9.1/fonts/remixicon.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/simulator_style.css') }}"
+    />
+    <title>AI Simulation Playground</title>
+    <link rel="icon" type="image/x-icon" href="/static/icons/icon-192.png" />
+  </head>
+  <body>
+    <div class="sim-container">
+      <header class="sim-header">
+        <a href="/" class="btn-back"
+          ><i class="ri-arrow-left-line"></i> Back to Home</a
+        >
+        <h1><i class="ri-flask-line"></i> AI Simulation Playground</h1>
+        <p>
+          Manually trigger environment attributes to test diagnostic thresholds
+        </p>
+      </header>
+
+      <div class="sim-layout">
+        <!-- FORM INPUT SIDE -->
+        <form id="simForm" class="card" onsubmit="runSimulation(event)">
+          <h3>Configure Attributes</h3>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="room_temp">Room Temperature (°C)</label>
+              <input
+                type="number"
+                id="room_temp"
+                step="0.1"
+                value="25.0"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="supply_temp">Supply Temperature (°C)</label>
+              <input
+                type="number"
+                id="supply_temp"
+                step="0.1"
+                value="16.0"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="vibration_mag">Vibration Magnitude</label>
+              <input
+                type="number"
+                id="vibration_mag"
+                step="0.01"
+                value="0.15"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="vibration_std">Vibration Std Dev</label>
+              <input
+                type="number"
+                id="vibration_std"
+                step="0.01"
+                value="0.02"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="gyroscope">Gyroscope Rate</label>
+              <input
+                type="number"
+                id="gyroscope"
+                step="0.01"
+                value="0.01"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="current">Current Draw (Amps)</label>
+              <input
+                type="number"
+                id="current"
+                step="0.1"
+                value="4.5"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="low_pressure">Low Side Pressure (PSI)</label>
+              <input
+                type="number"
+                id="low_pressure"
+                step="0.1"
+                value="75.0"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="compressor_on">Compressor Status</label>
+              <select id="compressor_on">
+                <option value="1">1 - Engaged/On</option>
+                <option value="0">0 - Disengaged/Off</option>
+              </select>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-submit">
+            Predict <i class="ri-cpu-line"></i>
+          </button>
+        </form>
+
+        <!-- RESPONSE RESULT SIDE -->
+        <div class="card result-card">
+          <h3>Simulation Analysis</h3>
+          <div id="welcomeResult" class="placeholder-msg">
+            <i class="ri-mind-map ri-3x"></i>
+            <p>
+              Set values on the left and execute the classification engine to
+              observe calculated outputs.
+            </p>
+          </div>
+
+          <div id="outputDisplay" style="display: none">
+            <div class="verdict-banner" id="verdictBanner">
+              <span class="verdict-label">System Decision</span>
+              <div class="verdict-value" id="finalPrediction">HEALTHY</div>
+            </div>
+
+            <div class="model-scores">
+              <div class="score-block">
+                <div class="score-title">
+                  <i class="ri-tree-line"></i> Random Forest
+                </div>
+                <div class="score-val" id="rfResult">--</div>
+                <div class="score-conf" id="rfConf">(--%)</div>
+              </div>
+              <div class="score-block">
+                <div class="score-title">
+                  <i class="ri-brain-2-line"></i> LSTM Inference
+                </div>
+                <div class="score-val" id="lstmResult">--</div>
+                <div class="score-conf" id="lstmConf">(--%)</div>
+              </div>
+            </div>
+
+            <div class="alert-box" id="alertBox">
+              <strong id="alertLevel">ALERT LEVEL: --</strong>
+              <p id="alertMsg">No warning details evaluated.</p>
+              <div class="rec-box">
+                <strong>Recommendation:</strong>
+                <p id="alertRec">--</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PWA INSTALL BANNER -->
+    <div id="installBanner">
+      <div>
+        <div class="install-text">Install AC Monitor</div>
+        <div class="install-sub">Add to home screen for quick access</div>
+      </div>
+      <button class="install-btn" id="installBtn">Install</button>
+    </div>
+
+    <script>
+      function runSimulation(e) {
+        e.preventDefault();
+
+        // Packages input fields perfectly to match your Flask `/predict` parameter types
+        const payload = {
+          room_temp: parseFloat(document.getElementById("room_temp").value),
+          supply_temp: parseFloat(document.getElementById("supply_temp").value),
+          vibration_mag: parseFloat(
+            document.getElementById("vibration_mag").value,
+          ),
+          vibration_std: parseFloat(
+            document.getElementById("vibration_std").value,
+          ),
+          gyroscope: parseFloat(document.getElementById("gyroscope").value),
+          current: parseFloat(document.getElementById("current").value),
+          low_pressure: parseFloat(
+            document.getElementById("low_pressure").value,
+          ),
+          compressor_on: parseInt(
+            document.getElementById("compressor_on").value,
+          ),
+        };
+
+        // Executes request against your prediction route with `is_demo=true` query param
+        fetch("/predict?is_demo=true", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.error) {
+              alert("Model Error: " + data.error);
+              return;
+            }
+
+            document.getElementById("welcomeResult").style.display = "none";
+            document.getElementById("outputDisplay").style.display = "block";
+
+            // Inject computed outputs
+            document.getElementById("finalPrediction").innerText =
+              data.final_prediction;
+            document.getElementById("rfResult").innerText = data.rf_prediction;
+            document.getElementById("rfConf").innerText =
+              `(${data.rf_confidence}%)`;
+            document.getElementById("lstmResult").innerText =
+              data.lstm_prediction;
+            document.getElementById("lstmConf").innerText =
+              `(${data.lstm_confidence}%)`;
+
+            document.getElementById("alertLevel").innerText =
+              `ALERT STATUS: ${data.alert_level}`;
+            document.getElementById("alertMsg").innerText = data.alert_message;
+            document.getElementById("alertRec").innerText = data.recommendation;
+
+            // Visual theme switcher based on severity levels
+            const banner = document.getElementById("verdictBanner");
+            banner.className =
+              "verdict-banner " + data.alert_level.toLowerCase();
+          })
+          .catch((err) => console.error("Transmission Error:", err));
+      }
+
+      // ============================================================
+      // PWA — INSTALL PROMPT
+      // ============================================================
+      let deferredPrompt = null;
+      window.addEventListener("beforeinstallprompt", (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        document.getElementById("installBanner").style.display = "flex";
+      });
+
+      document.getElementById("installBtn").addEventListener("click", () => {
+        if (deferredPrompt) {
+          deferredPrompt.prompt();
+          deferredPrompt.userChoice.then(() => {
+            document.getElementById("installBanner").style.display = "none";
+            deferredPrompt = null;
+          });
+        }
+      });
+
+      // ============================================================
+      // SERVICE WORKER REGISTRATION
+      // ============================================================
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker
+          .register("/sw.js")
+          .then(() => console.log("SW registered"))
+          .catch((e) => console.log("SW error:", e));
+      }
+
+      function scrollTop() {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    </script>
+  </body>
+</html>
