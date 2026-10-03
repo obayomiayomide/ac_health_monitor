@@ -209,17 +209,17 @@ def predict():
         comp_on      = int(data.get('compressor_on', 1))
 
         # ✅ Isolated data logging (Appends unique Device ID inside CSV file)
-        if not is_demo:
-            with open('real_healthy_data_v2.csv', 'a', newline='') as f:
-                writer = csv.writer(f)
-                writer.writerow([
-                    datetime.now().strftime('%H:%M:%S'),
-                    device_id, # Added to know which machine logged it
-                    supply_temp, room_temp, temp_diff,
-                    vib_mag, vib_std, gyro,
-                    current, low_psi,
-                    comp_on, 'HEALTHY'
-                ])
+        # if not is_demo:
+        #     with open('real_healthy_data_v2_2.csv', 'a', newline='') as f:
+        #         writer = csv.writer(f)
+        #         writer.writerow([
+        #             datetime.now().strftime('%H:%M:%S'),
+        #             device_id, # Added to know which machine logged it
+        #             supply_temp, room_temp, temp_diff,
+        #             vib_mag, vib_std, gyro,
+        #             current, low_psi,
+        #             comp_on, 'HEALTHY'
+        #         ])
 
         features = [
             supply_temp, room_temp, temp_diff,
